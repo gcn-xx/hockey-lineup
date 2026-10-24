@@ -245,7 +245,7 @@ function renderRoster(){
  h+='<div class="card"><h3>Copy to home-screen app / Safari</h3><div class="frow"><button class="btn acc" data-act="copyT">Copy data</button><button class="btn acc" data-act="pasteT">Paste data</button></div>'+
   '<p class="hint">iPhone keeps Safari and home-screen app data separate. To move rosters between them: in the app that HAS the data tap Copy data, open the other one, tap Paste data. Also use this to move rosters between devices (send the text via Messages/Notes).</p></div>';
  h+='<div class="card"><h3>Backup</h3><div class="frow"><button class="btn" data-act="export">Export JSON file</button><button class="btn" data-act="import">Import JSON file</button><button class="btn danger" data-act="reset">Reset app</button></div>'+
-  '<p class="hint">Saves a .json to Files/iCloud before switching phones. Roster &amp; lines live on this device.</p></div>';
+  '<p class="hint">Saves two files to Files/iCloud: the .json backup (restore via Import) and a readable lineup .txt. Roster &amp; lines live on this device.</p></div>';
  return h;
 }
 function render(){
@@ -293,8 +293,8 @@ function doAuto(sec){
   save();render();
  }
 }
-function buildShareText(){
- var t=T(),out=t.name+' — lineup\n';
+function buildShareText(team){
+ var t=team||T(),out=t.name+' — lineup\n';
  SEC_ORDER.forEach(function(sec){
   var a=slotsOf(t,sec);
   for(var i=0;i<a.length;i++){
@@ -322,13 +322,22 @@ function doShare(){
  else if(navigator.clipboard){navigator.clipboard.writeText(txt).then(function(){toast('Copied');});}
  else toast(txt);
 }
-function doExport(){
- var blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+function downloadFile(name,content,mime){
+ var blob=new Blob([content],{type:mime||'text/plain'});
  var a=document.createElement('a');
  a.href=URL.createObjectURL(blob);
- a.download='lineup-backup-'+new Date().toISOString().slice(0,10)+'.json';
- document.body.appendChild(a);a.click();a.remove();
- toast('Exported');
+ a.download=name;
+ document.body.appendChild(a);
+ a.click();
+ setTimeout(function(){a.remove();},50);
+}
+function doExport(){
+ var today=new Date().toISOString().slice(0,10);
+ downloadFile('lineup-backup-'+today+'.json',JSON.stringify(S,null,2),'application/json');
+ var txt=S.teams.map(function(t,i,arr){return buildShareText(t)+(i<arr.length-1?'\n\n———\n\n':'');}).join('');
+ downloadFile('lineup-'+today+'.txt',txt,'text/plain');
+ toast('Saved: backup + readable lineup');
+ setTimeout(function(){downloadFile('lineup-'+today+'.txt',txt,'text/plain');},400);
 }
 function doImport(){
  var inp=document.createElement('input');inp.type='file';inp.accept='.json,application/json';
